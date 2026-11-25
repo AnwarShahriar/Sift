@@ -15,3 +15,6 @@ local.properties
 
 # Local scratch: handoffs and temporary work, never committed
 docs/temp/
+
+# Personal Claude Code setup
+CLAUDE.local.md

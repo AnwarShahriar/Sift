@@ -31,6 +31,6 @@ Needs JDK 21 (`JAVA_HOME`). Versions live in `gradle/libs.versions.toml`.
 ## Workflow
 
 - Work happens on a branch per issue and lands through a PR; never commit to `main`.
-- PRs are opened by the `anwar-autobot` account so the owner can review them in Sift. Keep `AnwarShahriar` as gh's active account; switch to the bot only to push and open a PR.
 - `docs/temp/` is gitignored scratch for handoffs and temporary work. Handoffs are `docs/temp/handoff-YYYY-MM-DD.md`; when resuming, read the newest one.
-- GitHub tokens are fine-grained (owner) and classic (bot): there is no Checks API access, so read CI from Actions runs and commit statuses.
+- Read CI from Actions runs and commit statuses, not check runs: fine-grained tokens can't reach the Checks API.
+- Personal machine setup (accounts, tokens) goes in `CLAUDE.local.md`, which is gitignored.
