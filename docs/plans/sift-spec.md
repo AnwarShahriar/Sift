@@ -2,7 +2,7 @@
 
 Formerly "Swipe Review". Nov 18, 2026 · updated Nov 24, 2026 · @Md Shahriar Anwar
 
-Build plan for v1: see "Sift v1 — Build Plan and Claude Code Handoff" in this project. Design canvas ("Sift — UI"): https://claude.ai/artifact/EnKMCRHPJzvogRGD68yc6Q
+Build plan for v1: [v1-slices.md](v1-slices.md). Design canvas ("Sift — UI"): https://claude.ai/artifact/EnKMCRHPJzvogRGD68yc6Q
 
 ## Problem and goal
 
@@ -155,7 +155,7 @@ Every pass gets a 1–10 concern score; only scores at or above the threshold be
 
 ## The review passes
 
-Twenty-one passes, grouped from cheap gates to deep detail; the tool runs only those the PR touches. v1 ships a subset (see the build plan).
+Twenty-one passes, grouped from cheap gates to deep detail; the tool runs only those the PR touches. v1 ships a subset (see [v1-slices.md](v1-slices.md)).
 
 | Group | Pass | You check | Tool does | Runs when |
 | --- | --- | --- | --- | --- |
@@ -208,11 +208,11 @@ Rules a linter can enforce move to CI; rules that need judgment stay here as "wo
 
 Design canvas "Sift — UI": https://claude.ai/artifact/EnKMCRHPJzvogRGD68yc6Q, three pages. The earlier neutral "Current" design was retired.
 
-- **Playful (Dark), the v1 theme:** desktop PR list (grouped tiles with details lines, review fuel gauge, auto-prep state), desktop review (upright card, deck peeking behind, score tile, side-by-side code with the near-duplicate, "code peeked", Space/C/R hints, reds pile, "Waiting on the build" with Refresh disabled until green, next hard gate), desktop follow-ups ("You asked for 4 things.", status-dot list, follow-up card, Not yet · reply / Sorted · resolve), desktop settings (worker, review fuel, auto-prep with disclaimer), mobile swipe (Spot check example, lime outline + straight "LOOKS FINE →" label), mobile hard-gate sign-off.
-- **Playful (Light):** Shahriar's contrast-fixed light theme, same six screens. White ground, navy text (#0F1B2D), slate secondary text (#51627A), deep green fills for "fine" (#4F8F00), mandarin primary (#FF7A1A), tangerine attention (#FFA43A), frosty tracks (#E6EEF6, #C3D1DF), frosty sign-off backdrop (#DCE9F5); code blocks stay dark.
+- **Playful (Dark), the v1 theme:** desktop PR list (grouped tiles with details lines, review fuel gauge, auto-prep state), desktop review (upright card, deck peeking behind, score tile, side-by-side code with the near-duplicate, "code peeked", Space/C/R hints, reds pile, "Waiting on the build" with Refresh disabled until green, next hard gate), desktop follow-ups ("You asked for 4 things.", status-dot list, follow-up card, Not yet · reply / Sorted · resolve), desktop settings (worker, review fuel, auto-prep with disclaimer), mobile swipe (Spot check example, lime outline + straight "LOOKS FINE →" label), mobile hard-gate sign-off. Added Nov 25: desktop red queue and submit bar (comment anchored under the snippet, @mention, change/question tag, Approve disabled while the build is red, "Send as pending"), desktop hard-gate sign-off (data flow, checks, snippet, "Why it's OK", Sign off / Send back, gates on this PR), the side panel with "Passed · 9" opened (score and one-line reason per pass), and empty/loading/error/first-run states (tool checklist, `gh auth login`, loading tiles, no PRs, worker failed, fuel used up).
+- **Playful (Light):** Shahriar's contrast-fixed light theme, the original six screens (not yet the Nov 25 additions). White ground, navy text (#0F1B2D), slate secondary text (#51627A), deep green fills for "fine" (#4F8F00), mandarin primary (#FF7A1A), tangerine attention (#FFA43A), frosty tracks (#E6EEF6, #C3D1DF), frosty sign-off backdrop (#DCE9F5); code blocks stay dark.
 - **Playful (Terminal):** PR list and review drawn strictly on a 140-column character grid, one font size, whole-cell spacing, colour only as foreground/background on characters (no outlines, rounded corners or larger text). Group headings are coloured blocks with a ─ rule; accent bars use block characters (▌, or ▎ for thinner) that terminals draw edge to edge, so stacked rows join into a solid bar. Outlined tags become `[ FRESH ]`.
 
-Not yet designed in the playful style: desktop red queue and submit bar, the collapsed "Passed" list on desktop, empty/loading/error/first-run states, mobile PR list and red queue, terminal settings. v1 builds the desktop ones from existing parts (see the build plan).
+Not yet designed in the playful style: mobile PR list and red queue, terminal settings (all after v1), and the Nov 25 screens on the Light page.
 
 ### Visual language (playful)
 
@@ -235,7 +235,7 @@ Not yet designed in the playful style: desktop red queue and submit bar, the col
 
 ### The review bundle is the real contract
 
-A `review.json` file (validated against a schema) holds the cards, scores, reasons, evidence (file and line ranges), hard gates, follow-up verdicts and status. Whoever produces it (a Claude skill now, a Gemma + Lore engine later) is swappable; the desktop app, terminal UI and any HTML prototype only read it. The UI writes the reviewer's decisions (verdicts, comments, sign-offs, follow-up resolutions) to a separate decisions file, which also holds the tracked follow-ups. Field outline: see the build plan.
+A `review.json` file (validated against a schema) holds the cards, scores, reasons, evidence (file and line ranges), hard gates, follow-up verdicts and status. Whoever produces it (a Claude skill now, a Gemma + Lore engine later) is swappable; the desktop app, terminal UI and any HTML prototype only read it. The UI writes the reviewer's decisions (verdicts, comments, sign-offs, follow-up resolutions) to a separate decisions file, which also holds the tracked follow-ups. Field outline: see S0.2 in [v1-slices.md](v1-slices.md).
 
 ### v1 route: the app is the front door, a Claude Code skill does the AI work
 
@@ -348,7 +348,7 @@ Agents running on Gemma (Pi, Paperclip with local models) won't load a Claude pl
 
 ## Planning approach
 
-- v1 is built milestone by milestone from the build plan (M0 repo + schema + fixtures, then UI from fixtures, live PR list, deterministic skill, AI skill, sync, follow-ups).
+- v1 is built slice by slice from [v1-slices.md](v1-slices.md) (M0 repo + schema + fixtures, then UI from fixtures, live PR list, deterministic skill, AI skill, sync, follow-ups).
 - Use the **wayfinder** skill for the larger open areas after v1 (Lore + Gemma worker, team rollout). Keep its map in the Sift repo, not in a chat workspace.
 - Use the **prototype** skill (logic branch) if the review state model needs a quick HTML check.
 
@@ -376,7 +376,7 @@ The performance pipeline is planned as a separate build; the rest are proposals 
 - [x] Who is v1 for? → Shahriar only, personal machine, personal repos (pilot: the Weight Loss app).
 - [x] Comments as the reviewer or a bot? → As the reviewer.
 - [x] Jira in v1? → No; state the target branch plainly.
-- [ ] Define the `review.json` schema (M0; outline in the build plan).
+- [ ] Define the `review.json` schema (M0; outline in [v1-slices.md](v1-slices.md), S0.2).
 - [ ] Admin OK for headless Claude Code reviews on the work SSO seat (and for automatic preparation there), and which plan type the org is on.
 - [ ] Can the judgment passes and follow-up verdicts run well on local Gemma 4 12B with Lore? (Test on 8 GB VRAM.)
 - [ ] Follow-ups: how reliable is guessing *change requested* vs *question* from wording, and should a comment be able to opt out of tracking?
