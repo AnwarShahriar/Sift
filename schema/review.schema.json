@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AnwarShahriar/Sift/schema/review.schema.json",
+  "title": "Sift review bundle",
+  "description": "review.json: everything a prepared review holds. The worker writes it; every UI only reads it. Rules that need more than one field (ids, references, card order) are checked by scripts/validate on top of this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "status", "passes", "cards", "followUps", "delta"],
+  "properties": {
+    "meta": {"$ref": "#/$defs/meta"},
+    "status": {"$ref": "#/$defs/status"},
+    "passes": {
+      "description": "Every pass Sift considered, in display order. Passes with no related change are listed as skipped and never shown as cards.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/pass"}
+    },
+    "cards": {
+      "description": "One card per finding. Sorted by order: hard gates first, then highest score down.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/card"}
+    },
+    "followUps": {
+      "description": "The reviewer's earlier comments, checked again on Re-prepare. Empty on a first review.",
+      "type": "array",
+      "items": {"$ref": "#/$defs/followUp"}
+    },
+    "delta": {
+      "description": "Set on a re-review: cards cover only what changed since the previous review. Null on a first review.",
+      "oneOf": [{"type": "null"}, {"$ref": "#/$defs/delta"}]
+    }
+  },
+  "$defs": {
+    "id": {
+      "description": "Stable identifier, lower-case kebab case.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "sha": {"description": "Full 40-character commit SHA.", "type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "path": {
+      "description": "Repository-relative file path, forward slashes, no leading slash.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^/]"
+    },
+    "nullablePath": {"type": ["string", "null"], "minLength": 1, "pattern": "^[^/]"},
+    "line": {"type": "integer", "minimum": 1},
+    "nullableLine": {"type": ["integer", "null"], "minimum": 1},
+    "score": {
+      "description": "Concern score: 1 = nothing worth a look, 10 = look now.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "nullableScore": {"description": "A concern score, or null.", "type": ["integer", "null"], "minimum": 1, "maximum": 10},
+    "oneLine": {
+      "description": "A single short line, no line breaks.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[^\\n\\r]*$"
+    },
+    "nullableOneLine": {"type": ["string", "null"], "minLength": 1, "maxLength": 200, "pattern": "^[^\\n\\r]*$"},
+    "text": {"type": "string", "minLength": 1},
+    "nullableText": {"type": ["string", "null"], "minLength": 1},
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pr",
+        "headSha",
+        "targetBranch",
+        "preparedAt",
+        "worker",
+        "conventionsVersion",
+        "budgetUsed"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "description": "Major.minor. A reader accepts any minor of the major it knows.",
+          "type": "string",
+          "pattern": "^1\\.[0-9]+$"
+        },
+        "pr": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["number", "repo", "title", "author", "url"],
+          "properties": {
+            "number": {"type": "integer", "minimum": 1},
+            "repo": {"description": "owner/name", "type": "string", "pattern": "^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$"},
+            "title": {"$ref": "#/$defs/text"},
+            "author": {"description": "GitHub login of the PR author.", "$ref": "#/$defs/text"},
+            "url": {"type": "string", "format": "uri", "pattern": "^https://"}
+          }
+        },
+        "headSha": {"$ref": "#/$defs/sha", "description": "The commit this review was prepared against."},
+        "targetBranch": {
+          "description": "Target branch check. Code only: v1 has no Jira, so expected is null unless the conventions file names one.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base", "expected", "check", "releaseVersion"],
+          "properties": {
+            "base": {"description": "The branch the PR merges into.", "$ref": "#/$defs/text"},
+            "expected": {"description": "The branch it should merge into, when known.", "$ref": "#/$defs/nullableText"},
+            "check": {
+              "description": "matches: base is the expected branch. mismatch: it is not (a hard gate). unknown: no expected branch to compare with.",
+              "enum": ["matches", "mismatch", "unknown"]
+            },
+            "releaseVersion": {
+              "description": "Release the target branch ships in, e.g. v4.12, when known.",
+              "$ref": "#/$defs/nullableText"
+            }
+          },
+          "allOf": [
+            {
+              "if": {"properties": {"expected": {"type": "null"}}},
+              "then": {"properties": {"check": {"const": "unknown"}}},
+              "else": {"properties": {"check": {"enum": ["matches", "mismatch"]}}}
+            }
+          ]
+        },
+        "preparedAt": {"type": "string", "format": "date-time"},
+        "worker": {
+          "description": "What prepared the review. Never holds a credential, only names.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "model"],
+          "properties": {
+            "name": {"description": "e.g. claude-code", "$ref": "#/$defs/id"},
+            "version": {"$ref": "#/$defs/nullableText"},
+            "model": {
+              "description": "Model used for the judgment passes; null when no AI ran.",
+              "$ref": "#/$defs/nullableText"
+            }
+          }
+        },
+        "conventionsVersion": {
+          "description": "Version of the conventions file the passes were scored against.",
+          "$ref": "#/$defs/text"
+        },
+        "budgetUsed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["units", "inputTokens", "outputTokens"],
+          "properties": {
+            "units": {
+              "description": "Units of the daily budget this preparation used (Prepare and Re-prepare use one).",
+              "type": "integer",
+              "minimum": 0
+            },
+            "inputTokens": {"type": ["integer", "null"], "minimum": 0},
+            "outputTokens": {"type": ["integer", "null"], "minimum": 0}
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["build", "review"],
+      "properties": {
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "failure"],
+          "properties": {
+            "state": {"enum": ["passing", "failing", "pending"]},
+            "failure": {
+              "description": "Set only when the build is failing.",
+              "oneOf": [{"type": "null"}, {"$ref": "#/$defs/buildFailure"}]
+            }
+          },
+          "if": {"properties": {"state": {"const": "failing"}}},
+          "then": {"properties": {"failure": {"$ref": "#/$defs/buildFailure"}}},
+          "else": {"properties": {"failure": {"type": "null"}}}
+        },
+        "review": {
+          "description": "ready: can be approved. pending-build: approval is blocked until the build is green, but every other pass still ran.",
+          "enum": ["ready", "pending-build"]
+        }
+      },
+      "if": {"properties": {"build": {"properties": {"state": {"const": "passing"}}}}},
+      "then": {"properties": {"review": {"const": "ready"}}},
+      "else": {"properties": {"review": {"const": "pending-build"}}}
+    },
+    "buildFailure": {
+      "description": "A parser finds the first real error; AI writes the likely cause.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "file", "line", "message", "likelyCause", "origin", "logUrl"],
+      "properties": {
+        "step": {"description": "e.g. Gradle :shared:compileKotlinIosArm64", "$ref": "#/$defs/text"},
+        "file": {"$ref": "#/$defs/nullablePath"},
+        "line": {"$ref": "#/$defs/nullableLine"},
+        "message": {"description": "The first real error, verbatim.", "$ref": "#/$defs/text"},
+        "likelyCause": {
+          "description": "One line, e.g. likely missing expect/actual. Null until the AI half has run.",
+          "$ref": "#/$defs/nullableOneLine"
+        },
+        "origin": {
+          "description": "Whether the PR's code broke it or the CI environment did.",
+          "enum": ["code", "infra", "unknown"]
+        },
+        "logUrl": {"type": ["string", "null"], "format": "uri"}
+      }
+    },
+    "pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "group", "state", "score", "hardGate", "reason", "collapsed", "spotCheck"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "name": {"description": "Display name, e.g. Components.", "$ref": "#/$defs/text"},
+        "group": {"enum": ["gates", "context", "visual", "structure", "detail", "sign-off"]},
+        "state": {
+          "description": "ran: scored. skipped: the PR touches nothing this pass looks at. awaiting-build: needs build output; refreshed once CI is green.",
+          "enum": ["ran", "skipped", "awaiting-build"]
+        },
+        "score": {"description": "Set when the pass ran and raised no hard gate.", "$ref": "#/$defs/nullableScore"},
+        "hardGate": {
+          "description": "True when the pass raised a hard gate: always shown, needs a named sign-off, ignores score.",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "One-line reason for the score, or why the pass was skipped or is waiting.",
+          "$ref": "#/$defs/oneLine"
+        },
+        "collapsed": {"description": "Below the threshold: listed under Passed, no card.", "type": "boolean"},
+        "spotCheck": {
+          "description": "A collapsed pass shown as a card labelled Spot check (about one PR in five).",
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "ran"}}},
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "hardGate": {"const": true},
+                  "score": {"type": "null"},
+                  "collapsed": {"const": false},
+                  "spotCheck": {"const": false}
+                }
+              },
+              {"properties": {"hardGate": {"const": false}, "score": {"$ref": "#/$defs/score"}}}
+            ]
+          },
+          "else": {
+            "properties": {
+              "score": {"type": "null"},
+              "hardGate": {"const": false},
+              "collapsed": {"const": false},
+              "spotCheck": {"const": false}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"spotCheck": {"const": true}}},
+          "then": {"properties": {"collapsed": {"const": true}}}
+        }
+      ]
+    },
+    "card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "passId",
+        "origin",
+        "title",
+        "explanation",
+        "score",
+        "hardGate",
+        "evidence",
+        "context",
+        "footnotes",
+        "needsCodeOpened",
+        "order"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "passId": {"$ref": "#/$defs/id"},
+        "origin": {
+          "description": "code: computed (gitleaks, CI/CD detection, ...). ai: a judgment; must carry evidence on real diff lines or it is dropped before writing.",
+          "enum": ["code", "ai"]
+        },
+        "title": {"$ref": "#/$defs/oneLine"},
+        "explanation": {"description": "What it found and why it matters, in a line or two.", "$ref": "#/$defs/text"},
+        "score": {"description": "Null on a hard-gate card.", "$ref": "#/$defs/nullableScore"},
+        "hardGate": {"type": "boolean"},
+        "evidence": {
+          "description": "The diff lines the card is about; 'show me the code' opens these.",
+          "type": "array",
+          "items": {"$ref": "#/$defs/diffEvidence"}
+        },
+        "context": {
+          "description": "Code outside the diff shown beside the evidence, e.g. the existing component a new one duplicates.",
+          "type": "array",
+          "items": {"$ref": "#/$defs/codeContext"}
+        },
+        "footnotes": {"type": "array", "maxItems": 3, "items": {"$ref": "#/$defs/footnote"}},
+        "needsCodeOpened": {
+          "description": "A right swipe counts only after the code was opened. Always true at score 7 and above.",
+          "type": "boolean"
+        },
+        "order": {"description": "Position in the deck, 0-based.", "type": "integer", "minimum": 0}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"hardGate": {"const": true}}},
+          "then": {"properties": {"score": {"type": "null"}}},
+          "else": {"properties": {"score": {"$ref": "#/$defs/score"}}}
+        },
+        {
+          "if": {"properties": {"origin": {"const": "ai"}}},
+          "then": {"properties": {"evidence": {"minItems": 1}}}
+        },
+        {
+          "if": {"required": ["score"], "properties": {"score": {"type": "integer", "minimum": 7}}},
+          "then": {"properties": {"needsCodeOpened": {"const": true}}}
+        }
+      ]
+    },
+    "diffEvidence": {
+      "description": "A line range in the PR diff. side old = base version, new = head version (GitHub's LEFT / RIGHT).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "side", "startLine", "endLine", "snippet"],
+      "properties": {
+        "file": {"$ref": "#/$defs/path"},
+        "side": {"enum": ["old", "new"]},
+        "startLine": {"$ref": "#/$defs/line"},
+        "endLine": {"$ref": "#/$defs/line"},
+        "snippet": {"description": "Exactly those lines, with any secret redacted.", "type": "string"}
+      }
+    },
+    "codeContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "sha", "startLine", "endLine", "snippet", "label"],
+      "properties": {
+        "file": {"$ref": "#/$defs/path"},
+        "sha": {"$ref": "#/$defs/sha"},
+        "startLine": {"$ref": "#/$defs/line"},
+        "endLine": {"$ref": "#/$defs/line"},
+        "snippet": {"type": "string"},
+        "label": {"description": "e.g. Existing PromoBanner", "$ref": "#/$defs/oneLine"}
+      }
+    },
+    "footnote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "label", "url"],
+      "properties": {
+        "kind": {"enum": ["platform-docs", "guideline", "conventions"]},
+        "label": {"$ref": "#/$defs/oneLine"},
+        "url": {"type": "string", "format": "uri"}
+      }
+    },
+    "followUp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "comment", "replies", "signals", "verdict", "why", "evidence"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "type": {
+          "description": "Guessed from the wording; the reviewer can flip it in the decisions file.",
+          "enum": ["change-requested", "question"]
+        },
+        "comment": {
+          "description": "The reviewer's original comment.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text", "file", "side", "startLine", "endLine", "commit", "thread"],
+          "properties": {
+            "text": {"$ref": "#/$defs/text"},
+            "file": {"description": "Null for a comment on the PR as a whole.", "$ref": "#/$defs/nullablePath"},
+            "side": {"oneOf": [{"type": "null"}, {"enum": ["old", "new"]}]},
+            "startLine": {"$ref": "#/$defs/nullableLine"},
+            "endLine": {"$ref": "#/$defs/nullableLine"},
+            "commit": {"$ref": "#/$defs/sha"},
+            "thread": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "url"],
+              "properties": {
+                "id": {"description": "GitHub review thread node id.", "$ref": "#/$defs/text"},
+                "url": {"type": "string", "format": "uri"}
+              }
+            }
+          },
+          "if": {"properties": {"file": {"type": "null"}}},
+          "then": {
+            "properties": {"side": {"type": "null"}, "startLine": {"type": "null"}, "endLine": {"type": "null"}}
+          },
+          "else": {
+            "properties": {
+              "side": {"enum": ["old", "new"]},
+              "startLine": {"$ref": "#/$defs/line"},
+              "endLine": {"$ref": "#/$defs/line"}
+            }
+          }
+        },
+        "replies": {
+          "description": "Replies in the thread after the comment, oldest first.",
+          "type": "array",
+          "items": {"$ref": "#/$defs/reply"}
+        },
+        "signals": {
+          "description": "Checked by code, no AI.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authorReplied", "threadResolved", "outdated", "linesTouched"],
+          "properties": {
+            "authorReplied": {"type": "boolean"},
+            "threadResolved": {"type": "boolean"},
+            "outdated": {"description": "GitHub's outdated flag on the thread.", "type": "boolean"},
+            "linesTouched": {"description": "New commits changed the commented lines.", "type": "boolean"}
+          }
+        },
+        "verdict": {
+          "description": "Sift's verdict. open: no reply and no change since, so no AI was spent. Sift never closes a follow-up; the reviewer does, in the decisions file.",
+          "enum": ["open", "addressed", "partly-addressed", "not-addressed", "answered", "not-answered"]
+        },
+        "why": {"description": "Short reason for the verdict.", "$ref": "#/$defs/oneLine"},
+        "evidence": {
+          "description": "New diff lines or reply text behind the verdict.",
+          "type": "array",
+          "items": {"oneOf": [{"$ref": "#/$defs/diffEvidence"}, {"$ref": "#/$defs/replyEvidence"}]}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"verdict": {"const": "open"}}},
+          "else": {"properties": {"evidence": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"type": {"const": "question"}}},
+          "then": {"properties": {"verdict": {"enum": ["open", "answered", "not-answered"]}}},
+          "else": {"properties": {"verdict": {"enum": ["open", "addressed", "partly-addressed", "not-addressed"]}}}
+        }
+      ]
+    },
+    "reply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "author", "text", "at"],
+      "properties": {
+        "id": {"description": "GitHub comment node id.", "$ref": "#/$defs/text"},
+        "author": {"description": "GitHub login.", "$ref": "#/$defs/text"},
+        "text": {"$ref": "#/$defs/text"},
+        "at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "replyEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["replyId", "quote"],
+      "properties": {
+        "replyId": {"description": "One of this follow-up's replies.", "$ref": "#/$defs/text"},
+        "quote": {"description": "The part of the reply the verdict rests on, verbatim.", "$ref": "#/$defs/text"}
+      }
+    },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["previousSha", "filesChanged"],
+      "properties": {
+        "previousSha": {"description": "Head SHA of the previous review.", "$ref": "#/$defs/sha"},
+        "filesChanged": {
+          "description": "Files changed between previousSha and meta.headSha.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/path"}
+        }
+      }
+    }
+  }
+}

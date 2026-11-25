@@ -1,0 +1,142 @@
+{
+  "meta": {
+    "schemaVersion": "1.0",
+    "pr": {
+      "number": 12,
+      "repo": "example-org/example-app",
+      "title": "Add promo card to the home feed",
+      "author": "dev-author",
+      "url": "https://github.com/example-org/example-app/pull/12"
+    },
+    "headSha": "2222222222222222222222222222222222222222",
+    "targetBranch": { "base": "develop", "expected": "develop", "check": "matches", "releaseVersion": "v1.4" },
+    "preparedAt": "2026-11-25T10:15:00Z",
+    "worker": { "name": "claude-code", "version": "1.0.0", "model": "claude-opus-5-5" },
+    "conventionsVersion": "1",
+    "budgetUsed": { "units": 1, "inputTokens": 42000, "outputTokens": 3100 }
+  },
+  "status": {
+    "build": {
+      "state": "failing",
+      "failure": {
+        "step": "Gradle :shared:compileKotlinIosArm64",
+        "file": "shared/src/iosMain/kotlin/PromoState.kt",
+        "line": 14,
+        "message": "Unresolved reference 'Expired'.",
+        "likelyCause": "Likely a missing actual for the new expect enum entry.",
+        "origin": "code",
+        "logUrl": "https://github.com/example-org/example-app/actions/runs/1"
+      }
+    },
+    "review": "pending-build"
+  },
+  "passes": [
+    { "id": "ci-cd", "name": "CI/CD and tooling", "group": "sign-off", "state": "ran", "score": null, "hardGate": true, "reason": "build.gradle.kts changed.", "collapsed": false, "spotCheck": false },
+    { "id": "components", "name": "Components", "group": "structure", "state": "ran", "score": 7, "hardGate": false, "reason": "New PromoCard is close to PromoBanner.", "collapsed": false, "spotCheck": false },
+    { "id": "naming", "name": "Naming and style", "group": "detail", "state": "ran", "score": 2, "hardGate": false, "reason": "Names follow the conventions file.", "collapsed": true, "spotCheck": true },
+    { "id": "security", "name": "Security", "group": "sign-off", "state": "ran", "score": 1, "hardGate": false, "reason": "No secrets found.", "collapsed": true, "spotCheck": false },
+    { "id": "tests", "name": "Tests", "group": "detail", "state": "awaiting-build", "score": null, "hardGate": false, "reason": "Needs a green build.", "collapsed": false, "spotCheck": false },
+    { "id": "collapse-assets", "name": "Collapse non-reviewables", "group": "context", "state": "skipped", "score": null, "hardGate": false, "reason": "No assets changed.", "collapsed": false, "spotCheck": false }
+  ],
+  "cards": [
+    {
+      "id": "ci-cd-gradle",
+      "passId": "ci-cd",
+      "origin": "code",
+      "title": "Build file changed",
+      "explanation": "build.gradle.kts adds a plugin. CI/CD changes need an owner's sign-off.",
+      "score": null,
+      "hardGate": true,
+      "evidence": [
+        { "file": "build.gradle.kts", "side": "new", "startLine": 3, "endLine": 3, "snippet": "    id(\"com.example.promo\") version \"1.0\"" }
+      ],
+      "context": [],
+      "footnotes": [],
+      "needsCodeOpened": false,
+      "order": 0
+    },
+    {
+      "id": "components-promo-card",
+      "passId": "components",
+      "origin": "ai",
+      "title": "PromoCard looks a lot like PromoBanner",
+      "explanation": "About 80% the same layout. Extending PromoBanner with a compact style may be simpler.",
+      "score": 7,
+      "hardGate": false,
+      "evidence": [
+        { "file": "app/src/main/kotlin/PromoCard.kt", "side": "new", "startLine": 10, "endLine": 12, "snippet": "@Composable\nfun PromoCard(promo: Promo) {\n    Row {" }
+      ],
+      "context": [
+        { "file": "app/src/main/kotlin/PromoBanner.kt", "sha": "2222222222222222222222222222222222222222", "startLine": 8, "endLine": 10, "snippet": "@Composable\nfun PromoBanner(promo: Promo) {\n    Row {", "label": "Existing PromoBanner" }
+      ],
+      "footnotes": [
+        { "kind": "conventions", "label": "Extend before you add", "url": "https://github.com/example-org/example-app/blob/main/conventions.md#components" }
+      ],
+      "needsCodeOpened": true,
+      "order": 1
+    },
+    {
+      "id": "naming-spot-check",
+      "passId": "naming",
+      "origin": "ai",
+      "title": "Spot check: naming",
+      "explanation": "Scored low; shown so hidden passes stay honest.",
+      "score": 2,
+      "hardGate": false,
+      "evidence": [
+        { "file": "app/src/main/kotlin/PromoCard.kt", "side": "new", "startLine": 11, "endLine": 11, "snippet": "fun PromoCard(promo: Promo) {" }
+      ],
+      "context": [],
+      "footnotes": [],
+      "needsCodeOpened": false,
+      "order": 2
+    }
+  ],
+  "followUps": [
+    {
+      "id": "fu-1",
+      "type": "change-requested",
+      "comment": {
+        "text": "Please use the spacing token here.",
+        "file": "app/src/main/kotlin/PromoCard.kt",
+        "side": "new",
+        "startLine": 20,
+        "endLine": 20,
+        "commit": "1111111111111111111111111111111111111111",
+        "thread": { "id": "PRRT_example1", "url": "https://github.com/example-org/example-app/pull/12#discussion_r1" }
+      },
+      "replies": [
+        { "id": "PRRC_example1", "author": "dev-author", "text": "Done, switched to Spacing.md.", "at": "2026-11-24T18:00:00Z" }
+      ],
+      "signals": { "authorReplied": true, "threadResolved": false, "outdated": true, "linesTouched": true },
+      "verdict": "addressed",
+      "why": "The literal 16.dp is now Spacing.md.",
+      "evidence": [
+        { "file": "app/src/main/kotlin/PromoCard.kt", "side": "new", "startLine": 20, "endLine": 20, "snippet": "        .padding(Spacing.md)" },
+        { "replyId": "PRRC_example1", "quote": "switched to Spacing.md" }
+      ]
+    },
+    {
+      "id": "fu-2",
+      "type": "question",
+      "comment": {
+        "text": "Why a new card instead of extending the banner?",
+        "file": null,
+        "side": null,
+        "startLine": null,
+        "endLine": null,
+        "commit": "1111111111111111111111111111111111111111",
+        "thread": { "id": "PRRT_example2", "url": "https://github.com/example-org/example-app/pull/12#discussion_r2" }
+      },
+      "replies": [],
+      "signals": { "authorReplied": false, "threadResolved": false, "outdated": false, "linesTouched": false },
+      "verdict": "open",
+      "why": "No reply yet.",
+      "evidence": []
+    }
+  ],
+  "delta": {
+    "previousSha": "1111111111111111111111111111111111111111",
+    "filesChanged": ["build.gradle.kts", "app/src/main/kotlin/PromoCard.kt"]
+  }
+}

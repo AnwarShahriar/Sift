@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Validate Sift bundle files against schema/ and the cross-field rules.
+#   scripts/validate fixtures/pr-482            # a bundle directory
+#   scripts/validate .sift/482/review.json      # a single file
+# Exit 0: valid. 1: problems found. 2: bad usage.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+(cd "$root" && ./gradlew -q :engine:validatorClasspath)
+
+java="java"
+[[ -n "${JAVA_HOME:-}" ]] && java="$JAVA_HOME/bin/java"
+
+# Runs from the caller's directory, so paths print as typed. The schema library logs through SLF4J;
+# with no backend bound it would warn on every run.
+exec "$java" -Dslf4j.internal.verbosity=ERROR -cp "$(cat "$root/engine/build/validator.classpath")" \
+  io.github.anwarshahriar.sift.engine.bundle.ValidateMainKt "$@"
