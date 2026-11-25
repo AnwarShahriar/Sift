@@ -65,7 +65,7 @@ No app code. Ends with a schema both fixtures validate against.
 - **Done when:** schema checked in and validated by the same script.
 
 ### S0.4 Fixtures from the design
-- `fixtures/pr-482/review.json`: failing iOS build, PromoCard near-duplicate (7), banner grows on tablet (6), 2 awaiting build, 9 passed, a hard gate.
+- `fixtures/pr-482/review.json`: failing iOS build, PromoCard near-duplicate (7), banner grows on tablet (6), 2 awaiting build, 9 passed, a CI/CD hard gate (Gradle build file changed).
 - `fixtures/pr-476/review.json`: 4 follow-ups (handled, answered, partly, still open) plus 2 delta cards.
 - PR list fixture with #482, #476, #470, #487, #489, #491 in their design states.
 - **Done when:** both bundles validate.
@@ -105,7 +105,7 @@ The whole review flow clickable with no network and no AI.
 - **Done when:** the panel updates live as cards are swiped.
 
 ### S1.7 Hard-gate sign-off (desktop)
-- PlaySignoffDesktop: what the gate is, data-flow or change summary, "Why it's OK" field, Sign off as the reviewer's name, Send back to the author. Keep it visually distinct from primary actions.
+- PlaySignoffDesktop, with v1's gates: Security shows the redacted hit, CI/CD shows the workflow or build-file diff. The canvas draws the Compliance example; same layout. What the gate is, change summary, "Why it's OK" field, Sign off as the reviewer's name, Send back to the author. Keep it visually distinct from primary actions.
 - **Done when:** a right swipe on a hard gate opens sign-off and records name and reason in the decisions file.
 
 ### S1.8 Red queue and submit bar
@@ -140,6 +140,7 @@ Opening the app costs no AI.
 
 ### S2.3 Quick facts
 - Repo, author, files, +/−, CI status, target branch, "touches build files" from `gh` and scripts.
+- CI status comes from Actions workflow runs and commit statuses, not check runs: fine-grained tokens can't read the Checks API.
 - **Done when:** every tile shows its details line from live data.
 
 ### S2.4 Review states from disk
@@ -176,6 +177,8 @@ Prepare produces a valid bundle with no AI involved.
 
 ## M4 — Skill, AI part and the queue
 
+Prepare fills AI cards as passes finish; Cancel leaves nothing half-written.
+
 ### S4.1 Worker launcher
 - Run Claude Code headless with the skill, stripped environment (`ANTHROPIC_API_KEY` removed), progress events streamed back.
 - **Done when:** Prepare runs the skill and the tile shows live "Sifting passes… 6 / 11".
@@ -196,17 +199,22 @@ Prepare produces a valid bundle with no AI involved.
 
 ## M5 — Sync back to GitHub
 
+A full review round-trips to GitHub as the reviewer.
+
 ### S5.1 `sift sync`: comments
 - Post decisions-file comments as review comments anchored to file and line via `gh`, as the reviewer.
 - **Done when:** a test PR shows the comments in GitHub's diff view.
 
 ### S5.2 `sift sync`: submit and resolve
 - Submit approve / request changes / pending; resolve threads marked sorted; record hard-gate sign-offs in the review body.
+- On the reviewer's own PR GitHub allows only a comment review: say so in the submit bar and submit as a comment instead of failing.
 - **Done when:** a full review round-trips to GitHub on a test PR.
 
 ---
 
 ## M6 — Follow-ups
+
+A re-review shows follow-ups first with correct statuses.
 
 ### S6.1 Follow-up tracking
 - Save each comment as a follow-up with its type guessed from wording (flippable), anchor and thread.
@@ -228,5 +236,5 @@ Prepare produces a valid bundle with no AI involved.
 
 ## Gaps to settle while building
 
-- **Compliance hard gate in the design, not in v1 passes.** PlaySignoff and the review panel show a Braze/PII compliance gate, but the v1 pass list has only Security and CI/CD as hard gates. Either add Compliance to v1 or use a Security or CI/CD gate as the sign-off example.
+- **Compliance hard gate moves after v1** (decided Nov 25). v1 hard gates are Security and CI/CD. The canvas still shows the Braze/PII compliance example on PlaySignoff, PlaySignoffDesktop and the review panel's "next hard gate" hint; the layout carries over unchanged.
 - **Mobile screens** (PlayMobile, PlaySignoff) are out of v1.
