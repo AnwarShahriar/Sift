@@ -27,6 +27,7 @@ Needs JDK 21 (`JAVA_HOME`). Versions live in `gradle/libs.versions.toml`.
 
 - `./gradlew build`: compile and test everything
 - `./gradlew :app-desktop:run`: launch the desktop app
+- `scripts/validate <bundle-dir | file>...`: check bundle files against `schema/` plus the cross-field rules in `engine` (`bundle/ReviewRules.kt`)
 
 ## Workflow
 
